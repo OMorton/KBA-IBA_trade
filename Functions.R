@@ -209,3 +209,40 @@ retrieve_info <- function(speciesList){
   }
   return(df)
 }
+
+#### Fast mean ####
+#https://stackoverflow.com/questions/10397574/efficiently-compute-mean-and-standard-deviation-from-a-frequency-table
+
+fastmean <- function(dat, freq, value) {
+  with(dat, sum(freq*value)/sum(freq)) 
+}
+
+#### Large rasters to dt ####
+#https://gist.github.com/etiennebr/9515738
+as.data.table.raster <- function(x, row.names = NULL, optional = FALSE, xy=FALSE, inmem = terra::inMemory(x), ...) {
+  stopifnot(require("data.table"))
+  if(inmem) {
+    v <- as.data.table(as.data.frame(x, row.names=row.names, optional=optional, xy=xy, ...))
+    coln <- names(x)
+    if(xy) coln <- c("x", "y", coln)
+    setnames(v, coln)
+  } else {
+    tr <- blocks(x)
+    l <- lapply(1:tr$n, function(i) {
+      DT <- as.data.table(as.data.frame(terra::values(x, na.rm = TRUE, row = tr$row[i], nrows = tr$nrows[i]), ...))
+      if(xy == TRUE) {
+        cells <- terra::cellFromRowCol(x, c(tr$row[i], tr$row[i] + tr$nrows[i] - 1), c(1, ncol(x)))
+        coords <- terra::xyFromCell(x, cell = cells[1]:cells[2])
+        DT[, c("x", "y") := data.frame(terra::xyFromCell(x, cell = cells[1]:cells[2]))]
+      }
+      DT
+    })
+    v <- rbindlist(l)
+    coln <- names(x)
+    if(xy) {
+      coln <- c("x", "y", coln)
+      setcolorder(v, coln)
+    }
+  }
+  v
+}
