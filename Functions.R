@@ -210,6 +210,30 @@ retrieve_info <- function(speciesList){
   return(df)
 }
 
+#### Raster future lapply functions ####
+## getting global extent for parrelisation
+## https://epsg.io/54017 link for extent
+extend_custom <- function(x) {
+  terra::rast(x) %>% 
+    terra::extend(terra::ext(-17367530.45, 17367530.45, -7342230.14, 7342230.14)) %>%
+    terra::wrap()}
+
+## rast and wrap function for parrelisation
+rast_custom <- function(x) {
+  terra::rast(x) %>% 
+    terra::wrap()}
+
+## Function for getting AOH weighted presence at a global extent
+area_extend_custom <- function(x) {
+  ## get AOH
+  ex <- terra::global(terra::rast(x), fun="sum", na.rm=TRUE)$sum
+    #terra::rast(x) %>% 
+    ## some rasters dont have blanks for the original range but 0
+    #terra::ifel(. == 0, NA, .) %>%
+    #cells() %>% length()
+  (terra::rast(x)/ex) %>% 
+    terra::extend(terra::ext(-17367530.45, 17367530.45, -7342230.14, 7342230.14)) %>%
+    terra::wrap()}
 #### Fast mean ####
 #https://stackoverflow.com/questions/10397574/efficiently-compute-mean-and-standard-deviation-from-a-frequency-table
 
